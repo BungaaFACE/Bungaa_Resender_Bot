@@ -1,0 +1,8 @@
+*.pyc
+*.db
+/accounts/*
+*/CONFIGURATION.py
+.vscode
+./to_do.txt
+/TGResender*
+/get_reply_top_ids.py
