@@ -4,12 +4,12 @@ import emoji
 from global_data import global_data
 from bot_utils.filters import is_moderator, is_administrator, is_admin_action, is_moder_action
 from bot_utils.keyboards import (
+    generate_list_kb,
     generate_sources_kb,
     administrator_kb,
     moderator_kb,
     cancel_kb,
     yes_no_cancel_kb,
-    generate_topics_kb,
     generate_channel_list_kb
 )
 
@@ -86,11 +86,27 @@ async def admin_menu_actions(event):
                         return
                     channel_name = response_event.text.lower()
                     dialogs = await global_data.real_account_bot.get_dialogs()
+                    channels = {}
                     for dialog in dialogs:
                         if channel_name in dialog.name.lower():
-                            telegram_id = dialog.entity.id
-                            channel_name = dialog.name
-                            break
+                            channels[dialog.name] = dialog.entity.id
+                    else:
+                        if len(channels) > 1:
+                            response_event = await wait_for_response(event,
+                                                                     'Нашлось несколько каналов с таким названием. Уточните канал:', keyboard=generate_list_kb(channels.keys()))
+                            if response_event.text == 'Отмена':
+                                await resender_bot.send_message(event._sender_id, f'Добавление отменено.', buttons=administrator_kb)
+                                return
+                            else:
+                                channel_name = response_event.text
+                                telegram_id = channels[channel_name]
+                        elif len(channels) == 0:
+                            await resender_bot.send_message(event._sender_id, f'Каналов с текущим названием не нашлось. Отмена добавления.', buttons=administrator_kb)
+                            return
+                        else:
+                            channel_name = list(channels.keys())[0]
+                            telegram_id = channels[channel_name]
+                            await resender_bot.send_message(event._sender_id, f'Нашелся канал {channel_name} c id {telegram_id}.', buttons=administrator_kb)
                 # Несколько чатов или нет?
                 response_event = await wait_for_response(event,
                                                          'У канала несколько чатов?', keyboard=yes_no_cancel_kb)
@@ -109,7 +125,7 @@ async def admin_menu_actions(event):
                 # Обработка случая нескольких чатов в канале
                 if multichat:
                     topics_response = await global_data.real_account_bot(functions.channels.GetForumTopicsRequest(
-                        channel=telegram_id,
+                        channel=channel_name,
                         offset_date=None,
                         offset_id=0,
                         offset_topic=0,
@@ -118,7 +134,7 @@ async def admin_menu_actions(event):
                     topics = {
                         topic.title: topic.id for topic in topics_response.topics}
                     response_event = await wait_for_response(event,
-                                                             'Выберите название чата для перессылки.', keyboard=generate_topics_kb(topics))
+                                                             'Выберите название чата для перессылки.', keyboard=generate_list_kb(topics))
                     if response_event:
                         if response_event.text == 'Отмена':
                             await resender_bot.send_message(event._sender_id, f'Добавление отменено.', buttons=administrator_kb)
@@ -140,14 +156,13 @@ async def admin_menu_actions(event):
                     await resender_bot.send_message(event._sender_id, f'Этот канал/чат уже добавлен.', buttons=administrator_kb)
                     return
                 else:
-                    add_channel_sql = f"""INSERT INTO channels VALUES ('{channel_id}', {telegram_id}, '{channel_name}'"""
+                    add_channel_sql = f"""INSERT INTO channels(channel_id, telegram_id, channel_name) VALUES ('{channel_id}', {telegram_id}, '{channel_name}');"""
                     if multichat:
-                        add_channel_sql += f""", {reply_id}"""
-                    add_channel_sql += ');'
+                        add_channel_sql = f"""INSERT INTO channels(channel_id, telegram_id, channel_name, reply_id) VALUES ('{channel_id}', {telegram_id}, '{channel_name}', {reply_id});"""
 
                 global_data.custom_command(add_channel_sql)
                 global_data.update_channels()
-                add_sub_preferences_column = f"""ALTER TABLE sub_preferences ADD {channel_id} BOOLEAN DEFAULT TRUE;"""
+                add_sub_preferences_column = f"""ALTER TABLE sub_preferences ADD '{channel_id}' BOOLEAN DEFAULT TRUE;"""
                 global_data.custom_command(add_sub_preferences_column)
 
                 global_data.update_channels()

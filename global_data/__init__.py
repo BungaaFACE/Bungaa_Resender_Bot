@@ -20,10 +20,7 @@ global_data = GlobalData()
 
 if __name__ == '__main__':
     from pprint import pprint
-    print(GlobalData.__mro__)
+    # print(GlobalData.__mro__)
     pprint(global_data.listen_channels)
-    pprint(global_data.real_account_bot)
-    if global_data.listen_channels[-1001669922752]['reply_id']:
-        print('True')
-    else:
-        print('False')
+    pprint(global_data.listen_channels_id)
+    # pprint(global_data.real_account_bot)

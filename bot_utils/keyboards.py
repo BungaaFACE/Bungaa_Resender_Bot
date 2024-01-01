@@ -11,15 +11,13 @@ def generate_sources_kb(sub_id):
     sources_name = dict(global_data.get_items(
         'channels', columns='channel_id, channel_name'))
 
-    # inline_keyboard = types.InlineKeyboardMarkup()
     inline_keyboard = []
     for channel_id, channel_follow_status in sub_sources[0].items():
         emodji = '❌'
         if channel_follow_status:
             emodji = '✅'
-        channel_id = int(channel_id)
         button = types.KeyboardButtonCallback(
-            emodji+sources_name[channel_id], data=str(channel_id))
+            emodji+sources_name[channel_id], data=channel_id)
         inline_keyboard.append([button])
 
     return inline_keyboard
@@ -60,13 +58,10 @@ yes_no_cancel_kb = [[Button.text('Да', resize=True), Button.text('Нет', res
                     [Button.text('Отмена', resize=True)]]
 
 
-def generate_topics_kb(topics):
+def generate_list_kb(topics):
     inline_keyboard = []
-    print(topics)
     for topic_title in topics:
-        print(topic_title)
         button = Button.text(topic_title, resize=True)
-        print(button)
         inline_keyboard.append([button])
 
     inline_keyboard.append([Button.text('Отмена', resize=True)])

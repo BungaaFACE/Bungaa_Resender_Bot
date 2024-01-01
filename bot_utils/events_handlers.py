@@ -74,6 +74,8 @@ async def change_sources(event):
             await resender_bot.send_message(event._sender_id,
                                             f'Список источников:\n',
                                             buttons=keyboard)
+    else:
+        await resender_bot.send_message(event._sender_id, 'Вы не подписаны.')
 
 
 @resender_bot.on(events.CallbackQuery)
@@ -81,10 +83,10 @@ async def change_sources(event):
 async def callback_query_handler(event):
     callback_query = event.data.decode('utf-8')
     try:
-        if int(callback_query) in global_data.listen_channels_id:
+        if callback_query in global_data.listen_channels_id.values():
             global_data.custom_command(
                 f"""UPDATE sub_preferences SET "{callback_query}"= NOT "{callback_query}" WHERE subscriber_id={event._sender_id};""")
-            await resender_bot.edit_message(event._sender_id, event.message_id, f'Переключен {global_data.listen_channels[int(callback_query)]["name"]}',
+            await resender_bot.edit_message(event._sender_id, event.message_id, f'Переключен {global_data.listen_channels[callback_query]["name"]}',
                                             buttons=generate_sources_kb(event._sender_id))
     except Exception as e:
         traceback.print_exception(e)

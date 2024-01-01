@@ -1,5 +1,6 @@
 from global_data import global_data, REAL_ACCOUNT_ID
 from bot_utils.keyboards import administrator_labels, moderator_labels
+from telethon import utils
 
 
 def is_administrator(event):
@@ -33,12 +34,14 @@ def is_moder_action(event):
 
 
 def is_listen_channel(event):
-    return event.chat_id in global_data.listen_channels_id
+    real_id, peer_type = utils.resolve_id(event.chat_id)
+    return real_id in global_data.listen_channels_id
 
 
-def is_listen_reply_id(channel_id):
-    if global_data.listen_channels[channel_id]['reply_id']:
-        return channel_id == global_data.listen_channels[channel_id]['reply_id']
+def is_listen_reply_id(channel_id, message):
+    if global_data.listen_channels[channel_id]['reply_id'] != 'NONE':
+        return message.reply_to.reply_to_top_id == global_data.listen_channels[channel_id]['reply_id'] or \
+            message.reply_to.reply_to_msg_id == global_data.listen_channels[channel_id]['reply_id']
     else:
         return True
 

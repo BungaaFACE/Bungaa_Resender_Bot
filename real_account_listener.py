@@ -1,7 +1,6 @@
 from bot_utils.filters import is_listen_channel, is_administrator, is_listen_reply_id
-from telethon import events
 from global_data import global_data
-from telethon import functions
+from telethon import functions, utils, events
 from transliterate import translit
 import emoji
 
@@ -44,11 +43,11 @@ async def handler(event):
     # На случай, если в сообщении несколько фотографий/видео
     if event.grouped_id:
         return
-    telegram_id = event.chat_id
-    channel_id = global_data.listen_channels[telegram_id]
-    channel_name = global_data.listen_channels_id[channel_id]['name']
-
-    if is_listen_reply_id(telegram_id):
+    telegram_id, _ = utils.resolve_id(event.chat_id)
+    channel_id = global_data.listen_channels_id[telegram_id]
+    channel_name = global_data.listen_channels[channel_id]['name']
+    await resender_bot.send_message(342592137, channel_name)
+    if is_listen_reply_id(channel_id, event.message):
         event.message.message = f"{channel_name}:\n" + event.message.message
 
         channel_subscribed_ids = global_data.custom_command(
@@ -60,12 +59,12 @@ async def handler(event):
 @real_client.on(events.Album(func=is_listen_channel))
 async def handler(event):
     # Обработка сообщения с несколькими картинками/видео
-    telegram_id = event.chat_id
-    channel_id = global_data.listen_channels[telegram_id]
+    telegram_id, _ = utils.resolve_id(event.chat_id)
+    channel_id = global_data.listen_channels_id[telegram_id]
     channel_name = global_data.listen_channels[telegram_id]['name']
     # event.original_update.message.reply_to.reply_to_msg_id
 
-    if is_listen_reply_id(channel_id):
+    if is_listen_reply_id(channel_id, event.original_update.message):
         channel_subscribed_ids = global_data.custom_command(
             f'SELECT subscriber_id FROM sub_preferences WHERE "{channel_id}" = True', to_list=True)
         for subscriber in channel_subscribed_ids:
